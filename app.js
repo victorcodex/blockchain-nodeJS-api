@@ -216,6 +216,17 @@ class app{
 
 		return false
 	}
+
+	verifyRequired(keys, obj){
+		let fails = []
+		for(let i in keys){
+			let key = keys[i]
+			if(obj[key] && obj[key] !== ""){}
+			else{ fails[fails.length] = key; }
+		}
+
+		if(fails.length > 0){ throw new Error(keys.join("," + " parameters are required")); }
+	}
 }
 
 module.exports = new app()
