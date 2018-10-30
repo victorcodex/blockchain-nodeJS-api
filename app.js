@@ -148,24 +148,37 @@ class app{
 		let friend = await db.users.find({_id: friendId}).limit(1).toArray()
 		if(friend.length > 0){
 			// ensure both user and friend have wallets in the intended network
-			let mywallet = db.wallets.find({owner: this.user._id, network}).limit(1).toArray()
-			let friendwallet = db.wallets.find({owner: friendId, network}).limit(1).toArray()
+			let mywallet = await db.wallets.find({owner: this.user._id, network}).limit(1).toArray()
+			let friendwallet = await db.wallets.find({owner: friendId, network}).limit(1).toArray()
 
 			if(mywallet.length == 0 || friendwallet == 0) throw new Error('Sorry. Either you or your friend does not have a wallet saved in the specified network')
 
-			let result = await service.sendFunds(mywallet.secretkey, friendwallet.publickey, amount )
+			let result = await service.sendFunds(mywallet[0].secretkey, friendwallet[0].publickey, amount )
 
 		}else{
 			return {status: 404, message: 'Friend not found'}
 		}
 	}
 
-	async getBalance(){
-		//
+	async getBalance( sessionToken, network ){
+		this.verifysession(sessionToken)
+		let service = this.resolveService(network)
+
+		let mywallet = await db.wallets.find({owner: this.user._id, network}).limit(1).toArray()
+
+		let balance = await service.balance(mywallet[0].publickey )
+
 	}
 
-	async getRecentTransactions(){
-		//
+	async getRecentTransactions(sessionToken, network ){
+		this.verifysession(sessionToken)
+		let service = this.resolveService(network)
+
+		let mywallet = await db.wallets.find({owner: this.user._id, network}).limit(1).toArray()
+
+		let transactions = await service.getTransactions(mywallet[0].publickey )
+
+		return transactions
 	}
 
 	async verifysession(token){

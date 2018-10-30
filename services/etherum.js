@@ -15,6 +15,10 @@ class etherum{
 		//
 	}
 
+	balance(){
+		//
+	}
+
 	getTransactions(){
 		//
 	}
