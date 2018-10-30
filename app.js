@@ -17,9 +17,12 @@ const NETWORKS = {
 let db;
 
 class app{
-	async constructor(){
-		await client.connect()
-		db = client.db('cryptowallet')
+	constructor(){
+		(async () => {
+			await client.connect()
+			db = client.db('cryptowallet')	
+		})()
+		
 	}
 
 	async register(firstname, lastname, email, password, username, phone ){
