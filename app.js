@@ -1,7 +1,7 @@
 const mongo = require('mongodb')
 const MongoClient = mongo.MongoClient
 const ObjectId = mongo.ObjectId
-const client = new MongoClient(process.env.MONGO_URL)
+const client = new MongoClient("mongodb://user5:user5user5@ds121321.mlab.com:21321/dealin_crud_test")
 const Crypto = require('crypto-js')
 
 const stellar = require('./services/stellar.js')
@@ -20,14 +20,15 @@ class app{
 	constructor(){
 		(async () => {
 			await client.connect()
-			db = client.db('cryptowallet')	
+			db = client.db('dealin_crud_test')
+			console.log("This code ran")
 		})()
 		
 	}
 
 	async register(firstname, lastname, email, password, username, phone ){
 		password = Crypto.SHA256(password).toString()
-		let user = await db.users.find({$or: [{username: username}, {email: email.toLowerCase() }] }).limit(1).toArray()
+		let user = await db.collection("users").find({$or: [{username: username}, {email: email.toLowerCase() }] }).limit(1).toArray()
 		if(user.length > 0) throw new Error('Sorry, the provided username/email is already taken');
 
 		user = {
@@ -42,7 +43,7 @@ class app{
 			sessionToken: Math.random().toString(36).substr(2, 12) // seed session token so empty token is not used to login
 		}
 
-		await db.users.insertOne( user )
+		await db.collection("users").insertOne( user )
 		return {status: 200, message: 'Account created'}
 	}
 
@@ -50,23 +51,23 @@ class app{
 		let email = username.toLowerCase()
 		password = Crypto.SHA256(password).toString()
 
-		let user = await db.users.find({$or: [{username: username}, {email: email.toLowerCase() }], password: password }).limit(1).toArray()
+		let user = await db.collection("users").find({$or: [{username: username}, {email: email.toLowerCase() }], password: password }).limit(1).toArray()
 		if(user.length == 0) throw new Error('Invalid username/password supplied')
 
 		let sessionToken = Math.random().toString(36).substr(2, 13)
-		await db.users.updateOne({_id: user._id}, {$set: {sessionToken}})
+		await db.collection("users").updateOne({_id: user[0]._id}, {$set: {sessionToken}})
 
 		return {status: 200, sessionToken, firstname: user.firstname }
 	}
 
 	async logout( sessionToken ){
-		this.verifysession( sessionToken )
-		await db.users.updateOne({_id: this.user._id}, {$set:{ sessionToken: Math.random().toString(36).substr(2, 14)}})
+		await this.verifysession( sessionToken )
+		await db.collection("users").updateOne({_id: this.user._id}, {$set:{ sessionToken: Math.random().toString(36).substr(2, 14)}})
 		return {status: 200, message: 'You are now logged out'}
 	}
 
 	async createNewCryptoWallet(sessionToken, network){
-		this.verifysession(sessionToken)
+		await this.verifysession(sessionToken)
 		let service = this.resolveService(network)
 
 		let result = await service.createAccount()
@@ -78,12 +79,12 @@ class app{
 			created: new Date()
 		};
 
-		await db.wallets.insertOne(address)
+		await db.collection("wallets").insertOne(address)
 		return {status: 200, message: 'Account created for '+ network, address: address.publickey }
 	}
 
 	async addExistingCryptoWallet(sessionToken, network, publickey, privatekey ){
-		this.verifysession(sessionToken)
+		await this.verifysession(sessionToken)
 		network = this.verifynetwork(network)
 
 		let address = {
@@ -94,19 +95,19 @@ class app{
 			created: new Date()
 		}
 
-		await db.wallets.insertOne(address)
+		await db.collection("wallets").insertOne(address)
 		return {status: 200, message: 'Your existing wallet address has been saved'}
 	}
 
 	async addFriend(sessionToken, friendId){
 		// friendid can be email or username or phone
 		let email = friendId.toLowerCase()
-		this.verifysession( sessionToken )
+		await this.verifysession( sessionToken )
 
 		// make sure I'm not adding myself as a friend
 		if(this.user.username == friendId || this.user.email == email || this.user.phone == friendId) throw new Error('You cannot add yourself as your friend')
 
-		let friend = await db.users.find({$or:[
+		let friend = await db.collection('users').find({$or:[
 			{email}, {username: friendId}, {phone: friendId}
 		]}).limit(1).toArray()
 
@@ -114,7 +115,7 @@ class app{
 
 		// have I already added friend
 		if(this.alreadyHaveFriend(friend[0]._id)) return {status: 200, message: 'You already have this person as your friend'}
-		await db.users.updateOne({_id: this.user._id}, {$addToSet:{friends: friend[0]._id}})
+		await db.collection("users").updateOne({_id: this.user._id}, {$addToSet:{friends: friend[0]._id}})
 		
 		return {status: 200, message: 'Friend has been added' }
 	}
@@ -124,11 +125,11 @@ class app{
 	}
 
 	async getListOfFriends(sessionToken){
-		this.verifysession(sessionToken)
+		await this.verifysession(sessionToken)
 
 		if(this.user.friends.length == 0) return {status: 200, message: "You haven't added any friends yet "}
 
-		let friends = await db.users.find({_id: {$in: this.user.friends }}).toArray()
+		let friends = await db.collection("users").find({_id: {$in: this.user.friends }}).toArray()
 		let result = []
 		friends.forEach((friend) => {
 			result[ result.length ] = {
@@ -144,15 +145,16 @@ class app{
 	}
 
 	async sendFundsToFriend(sessionToken, friendId, amount, network){
-		this.verifynetwork(sessionToken)
+		await this.verifysession(sessionToken)
+		this.verifynetwork(network)
 		friendId = new ObjectId(friendId)
 		let service = this.resolveService(network)
 
-		let friend = await db.users.find({_id: friendId}).limit(1).toArray()
+		let friend = await db.collection("users").find({_id: friendId}).limit(1).toArray()
 		if(friend.length > 0){
 			// ensure both user and friend have wallets in the intended network
-			let mywallet = await db.wallets.find({owner: this.user._id, network}).limit(1).toArray()
-			let friendwallet = await db.wallets.find({owner: friendId, network}).limit(1).toArray()
+			let mywallet = await db.collection("wallets").find({owner: this.user._id, network}).limit(1).toArray()
+			let friendwallet = await db.collection("wallets").find({owner: friendId, network}).limit(1).toArray()
 
 			if(mywallet.length == 0 || friendwallet == 0) throw new Error('Sorry. Either you or your friend does not have a wallet saved in the specified network')
 
@@ -164,20 +166,20 @@ class app{
 	}
 
 	async getBalance( sessionToken, network ){
-		this.verifysession(sessionToken)
+		await this.verifysession(sessionToken)
 		let service = this.resolveService(network)
 
-		let mywallet = await db.wallets.find({owner: this.user._id, network}).limit(1).toArray()
+		let mywallet = await db.collection("wallets").find({owner: this.user._id, network}).limit(1).toArray()
 
 		let balance = await service.balance(mywallet[0].publickey )
 
 	}
 
 	async getRecentTransactions(sessionToken, network ){
-		this.verifysession(sessionToken)
+		await this.verifysession(sessionToken)
 		let service = this.resolveService(network)
 
-		let mywallet = await db.wallets.find({owner: this.user._id, network}).limit(1).toArray()
+		let mywallet = await db.collection("wallets").find({owner: this.user._id, network}).limit(1).toArray()
 
 		let transactions = await service.getTransactions(mywallet[0].publickey )
 
@@ -185,7 +187,7 @@ class app{
 	}
 
 	async verifysession(token){
-		let user = await db.users.find({ sessionToken: token}).limit(1).toArray()
+		let user = await db.collection("users").find({ sessionToken: token}).limit(1).toArray()
 		if(user.length == 0) throw new Error('Invalid session. Please login')
 		this.user = user[0]
 		return true
@@ -213,7 +215,7 @@ class app{
 	}
 
 	alreadyHaveFriend(id){
-		for(i in this.user.friends){
+		for(let i in this.user.friends){
 			if(this.user.friends[i] === id) return true
 		}
 
@@ -228,7 +230,7 @@ class app{
 			else{ fails[fails.length] = key; }
 		}
 
-		if(fails.length > 0){ throw new Error(keys.join("," + " parameters are required")); }
+		if(fails.length > 0){ throw new Error(fails.join(",") + " parameters are required"); }
 	}
 }
 

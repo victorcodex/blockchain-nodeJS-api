@@ -8,94 +8,104 @@ const cryptoapp = require('./app.js')
 
 //mongodb://user5:user5user5@ds121321.mlab.com:21321/dealin_crud_test
 
-app.post('/users', [urlparser, jsonparser], function(req, res){
+app.post('/users', [urlparser, jsonparser], async function(req, res){
 	try{
 		cryptoapp.verifyRequired(["firstname", "lastname", "email", "phone", "password", "username"], req.body)
-		cryptoapp.register(req.body.firstname, req.body.lastname, req.body.email, req.body.password, req.body.username, req.body.phone )
+		let result = await cryptoapp.register(req.body.firstname, req.body.lastname, req.body.email, req.body.password, req.body.username, req.body.phone )
+		res.json(result)
 	}
 	catch(e){
 		res.json({status: 400, message: e.message })
 	}
 })
-app.post('/user', [urlparser, jsonparser], function(req, res){
+app.post('/user', [urlparser, jsonparser], async function(req, res){
 	try{
 		cryptoapp.verifyRequired(["password", "username"], req.body)
-		cryptoapp.login(req.body.username, req.body.password)
+		let result = await cryptoapp.login(req.body.username, req.body.password)
+		res.json(result)
 	}
 	catch(e){
 		res.json({status: 400, message: e.message })
 	}
 })
-app.get('/user/logout', function(req, res){
+app.get('/user/logout', async function(req, res){
 	try{
-		cryptoapp.logout(req.headers.token)
+		let result = await cryptoapp.logout(req.get('token'))
+		res.json(result)
 	}
 	catch(e){
 		res.json({status: 400, message: e.message })
 	}
 })
-app.post('/user/wallets', [urlparser, jsonparser], function(req, res){
+app.post('/user/wallets', [urlparser, jsonparser], async function(req, res){
 	try{
 		cryptoapp.verifyRequired(["network"], req.body)
-		cryptoapp.createNewCryptoWallet(req.headers.token, req.body.network)
+		let result = await cryptoapp.createNewCryptoWallet(req.get('token'), req.body.network)
+		res.json(result)
 	}
 	catch(e){
 		res.json({status: 400, message: e.message })
 	}
 })
-app.put('/user/wallets', [urlparser, jsonparser], function(req, res){
+app.put('/user/wallets', [urlparser, jsonparser], async function(req, res){
 	try{
 		cryptoapp.verifyRequired(["network", "publickey", "privatekey"], req.body)
-		cryptoapp.addExistingCryptoWallet(req.headers.token, req.body.network, req.body.publickey, req.body.privatekey)
+		let result = await cryptoapp.addExistingCryptoWallet(req.get('token'), req.body.network, req.body.publickey, req.body.privatekey)
+		res.json(result)
 	}
 	catch(e){
 		res.json({status: 400, message: e.message })
 	}
 })
-app.post('/friends', [urlparser, jsonparser], function(req, res){
+app.post('/friends', [urlparser, jsonparser], async function(req, res){
 	try{
 		cryptoapp.verifyRequired(["friendid"], req.body)
-		cryptoapp.addFriend(req.headers.token, req.body.friendid)
+		let result = await cryptoapp.addFriend(req.get('token'), req.body.friendid)
+		res.json(result)
 	}
 	catch(e){
 		res.json({status: 400, message: e.message })
 	}
 })
-app.get('/friends', function(req, res){
+app.get('/friends', async function(req, res){
 	try{
 		
-		cryptoapp.getListOfFriends(req.headers.token)
+		let result = await cryptoapp.getListOfFriends(req.get('token'))
+		res.json(result)
 	}
 	catch(e){
 		res.json({status: 400, message: e.message })
 	}
 })
-app.post('/transfer', [urlparser, jsonparser], function(req, res){
+app.post('/transfer', [urlparser, jsonparser], async function(req, res){
 	try{
 		cryptoapp.verifyRequired(["friendid", "amount", "network"], req.body)
-		cryptoapp.sendFundsToFriend(req.headers.token, req.body.friendid, req.body.amount, req.body.network)
+		let result = await cryptoapp.sendFundsToFriend(req.get('token'), req.body.friendid, req.body.amount, req.body.network)
+		res.json(result)
 	}
 	catch(e){
 		res.json({status: 400, message: e.message })
 	}
 })
-app.get('/balance', function(req, res){
+app.get('/balance', async function(req, res){
 	try{
 		cryptoapp.verifyRequired(["network"], req.body)
-		cryptoapp.getBalance(req.headers.token, req.body.network)
+		let result = await cryptoapp.getBalance(req.get('token'), req.body.network)
+		res.json(result)
 	}
 	catch(e){
 		res.json({status: 400, message: e.message })
 	}
 })
-app.get('/transactions', function(req, res){
+app.get('/transactions', async function(req, res){
 	try{
 		cryptoapp.verifyRequired(["network"], req.body)
-		cryptoapp.getRecentTransactions(req.headers.token, req.body.network)
+		let result = await cryptoapp.getRecentTransactions(req.get('token'), req.body.network)
+		res.json(result)
 	}
 	catch(e){
 		res.json({status: 400, message: e.message })
 	}
 })
 
-app.listen(process.env.PORT || 3000, function(){ console.log('now listening on ' + process.env.PORT || 3000) })
+app.listen(3000, function(){ console.log('now listening on ' + 3000) })
