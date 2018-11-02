@@ -37,23 +37,29 @@ class stellar{
 		let destinationId = friendsPublickey;
 
 		try{
-			friendAccount = await server.loadAccount(destinationId)
-			sourceAccount = await server.loadAccount(sourceKeys.publicKey())
+			let friendAccount = await server.loadAccount(destinationId)
+			let sourceAccount = await server.loadAccount(sourceKeys.publicKey())
+
+			
 
 			let transaction = new StellarSdk.TransactionBuilder(sourceAccount)
 		    .addOperation(StellarSdk.Operation.payment({
 		    	destination: destinationId,
 		        asset: StellarSdk.Asset.native(),
-		    	amount: amount.toString()
+		    	amount: "" + amount
 		    }))
 		    .addMemo(StellarSdk.Memo.text('sending funds'))
 		    .build();
+
+		    
+
     		transaction.sign(sourceKeys);
     		let result = await server.submitTransaction(transaction);
 
     		return result;
 		}
 		catch(err){
+			console.log(err)
 			throw new Error('Unable to process transaction. Please try again')
 		}
 

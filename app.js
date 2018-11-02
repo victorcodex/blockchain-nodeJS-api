@@ -73,7 +73,7 @@ class app{
 		let result = await service.createAccount()
 		let address = {
 			publickey: result.publickey,
-			privatekey: result.privatekey,
+			privatekey: result.secretkey,
 			network,
 			owner: this.user._id,
 			created: new Date()
@@ -156,9 +156,13 @@ class app{
 			let mywallet = await db.collection("wallets").find({owner: this.user._id, network}).limit(1).toArray()
 			let friendwallet = await db.collection("wallets").find({owner: friendId, network}).limit(1).toArray()
 
-			if(mywallet.length == 0 || friendwallet == 0) throw new Error('Sorry. Either you or your friend does not have a wallet saved in the specified network')
+			//console.log(mywallet)
+			//console.log(friendwallet)
+			if(mywallet.length == 0 || friendwallet.length == 0) throw new Error('Sorry. Either you or your friend does not have a wallet saved in the specified network')
 
-			let result = await service.sendFunds(mywallet[0].secretkey, friendwallet[0].publickey, amount )
+			let result = await service.sendFunds(mywallet[0].privatekey, friendwallet[0].publickey, amount )
+
+			return {status: 200, message:'Funds sent', result: result}
 
 		}else{
 			return {status: 404, message: 'Friend not found'}
